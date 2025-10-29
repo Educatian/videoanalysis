@@ -1,6 +1,11 @@
 # Classroom Engagement Analysis System
 ## AI-Powered Student Engagement Tracking with Explainable Features
 
+[![GitHub Repository](https://img.shields.io/badge/GitHub-Educatian%2Fvideoanalysis-blue?logo=github)](https://github.com/Educatian/videoanalysis)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.8+](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Paper](https://img.shields.io/badge/Paper-Academic-green.svg)](#references--further-reading)
+
 ### Overview
 This system provides **academically rigorous, scientifically grounded analysis** of student engagement in classroom settings using computer vision, pose estimation, and explainable AI. It combines multi-modal input streams (video, audio) with advanced tracking and feature engineering to generate teacher-actionable insights.
 
