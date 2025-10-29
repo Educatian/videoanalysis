@@ -1,0 +1,267 @@
+# ============================================================================
+# Classroom Engagement Analysis System - Configuration
+# ============================================================================
+
+# Input & Synchronization Configuration
+input:
+  # Video processing
+  video:
+    target_resolution: [640, 480]  # [width, height] for inference
+    frame_skip: 1  # Process every Nth frame (1 = all frames)
+    interpolation: "linear"  # For frame synchronization
+  
+  # Audio processing (optional)
+  audio:
+    enabled: false
+    sample_rate: 16000  # Hz
+    channels: 1
+    chunk_duration: 0.1  # seconds
+
+# Detection Configuration (YOLOv7)
+detection:
+  model_path: "models/yolov7.pt"  # Pretrained weights
+  confidence_threshold: 0.45  # Person detection confidence (0.0-1.0)
+  nms_threshold: 0.5  # Non-Maximum Suppression threshold
+  device: "cuda"  # "cuda" or "cpu"
+  half_precision: true  # Use FP16 for faster inference
+  batch_size: 1  # Batch size for inference
+
+# Tracking Configuration (DeepSORT)
+tracking:
+  max_age: 30  # Max frames to keep track without detections
+  min_hits: 3  # Min detections before confirmed track
+  iou_threshold: 0.3  # IOU threshold for Hungarian matching
+  max_distance: 0.2  # Max Euclidean distance in embedding space
+  n_init: 3  # Frames needed to initialize track
+  nn_budget: 100  # Budget for nearest-neighbor matching
+  use_gpu: true
+
+# Pose Estimation Configuration
+pose_estimation:
+  backend: "mediapipe"  # "mediapipe" or "openpose"
+  
+  # MediaPipe settings
+  mediapipe:
+    model_complexity: 1  # 0 (lite), 1 (full), 2 (heavy)
+    min_detection_confidence: 0.5
+    min_tracking_confidence: 0.5
+    static_image_mode: false
+    
+    # Component modules
+    pose:
+      enabled: true
+      smooth_landmarks: true
+    
+    hand:
+      enabled: true
+      max_num_hands: 2
+      smooth_landmarks: true
+    
+    face_landmarks:
+      enabled: false  # Disabled for privacy
+      num_faces: 1
+  
+  # OpenPose settings (if backend == "openpose")
+  openpose:
+    model_path: "/path/to/openpose/models"
+    gpu_id: 0
+    net_resolution: "640x480"
+
+# Feature Engineering Configuration
+features:
+  # Time window parameters
+  window_size: 3.0  # seconds (aggregation window)
+  window_overlap: 0.9  # 90% overlap for sliding window
+  
+  # Gaze & Head Pose
+  gaze:
+    estimation_method: "head_vector"  # "head_vector" or "eye_gaze"
+    eye_contact_threshold_deg: 30  # Degrees from screen center
+    min_head_confidence: 0.5
+    smoothing_window: 5  # frames for temporal smoothing
+  
+  # Posture Analysis
+  posture:
+    # Shoulder-hip axis tilt from vertical
+    stability_variance_threshold_deg: 5  # Low variance = stable
+    fidget_threshold_deg: 15  # High variance = fidgeting
+    min_joint_confidence: 0.5
+    smoothing_window: 5  # frames
+  
+  # Hand Activity
+  hand_activity:
+    motion_threshold: 0.05  # pixels/frame (detection threshold)
+    writing_threshold: 0.15  # High-frequency, localized motion
+    pointing_threshold: 0.7  # Hand-to-screen alignment (dot product)
+    gesture_frequency_window: 60  # seconds for frequency count
+    min_gesture_duration: 0.5  # seconds
+  
+  # Screen/Tablet Interaction
+  interaction:
+    interaction_proximity_threshold: 150  # pixels
+    tablet_region_margin: 50  # pixels around tablet edges
+    enable_tablet_detection: true
+  
+  # Feature normalization
+  normalization:
+    method: "zscore"  # "zscore", "minmax", "quantile"
+    quantile_range: [0.05, 0.95]
+
+# Engagement Classification Configuration
+classification:
+  method: "rule_based"  # "rule_based" or "ml" (XGBoost/LogisticRegression)
+  
+  # Rule-based thresholds & weights
+  rule_based:
+    # Feature weights (must sum to 1.0 or normalize automatically)
+    weights:
+      gaze: 0.40
+      posture: 0.20
+      gesture: 0.20
+      interaction: 0.20
+    
+    # Engagement level boundaries
+    engagement_levels:
+      disengaged: [0, 33]      # Low engagement
+      passive: [34, 66]        # Moderate engagement
+      engaged: [67, 100]       # High engagement
+    
+    # Feature-specific scoring functions
+    gaze_function: "linear"  # "linear", "sigmoid", "custom"
+    posture_function: "gaussian"  # "linear", "gaussian", "custom"
+    gesture_function: "saturating"  # "linear", "saturating", "custom"
+    interaction_function: "linear"  # "linear", "sigmoid", "custom"
+  
+  # ML-based classification
+  ml:
+    model_path: "models/engagement_classifier.pkl"
+    model_type: "xgboost"  # "logistic_regression", "xgboost", "random_forest"
+    probability_threshold: 0.5  # Decision boundary
+    class_names: ["disengaged", "passive", "engaged", "highly_engaged"]
+
+# Report Generation Configuration (Gemini API)
+report_generation:
+  enabled: true
+  
+  # Gemini API settings
+  gemini:
+    model: "gemini-1.5-pro"  # Model version
+    api_key_env: "GEMINI_API_KEY"  # Environment variable name
+    temperature: 0.3  # Lower = more deterministic
+    max_output_tokens: 4096
+    top_p: 0.95
+    top_k: 40
+  
+  # Report content
+  report:
+    include_executive_summary: true
+    include_detailed_timeline: true
+    include_statistical_analysis: true
+    include_teacher_recommendations: true
+    include_visualizations: true
+    
+    # Narrative generation
+    narratives:
+      generate_per_student: true
+      generate_per_timeblock: true
+      min_timeblock_duration_sec: 180  # 3 minutes
+    
+    # Output formats
+    output_formats:
+      - "html"  # Interactive web report
+      - "pdf"   # Static PDF export
+      - "json"  # Machine-readable data
+    
+    # Quality & Safety
+    quality_control:
+      enforce_ethical_constraints: true
+      prohibit_identity_inference: true
+      prohibit_probabilistic_claims: true
+      max_claim_confidence: 0.95
+      min_supporting_evidence: 2  # Multiple features required
+
+  # Gemini system prompt (safety & quality)
+  system_prompt: |
+    You are an educational data analyst generating objective, evidence-based 
+    reports on student engagement during classroom activities.
+    
+    CRITICAL CONSTRAINTS:
+    1. NEVER make identity inferences, personal judgments, or assumptions about 
+       student characteristics beyond the provided numerical metrics.
+    2. NEVER use probabilistic language ("likely", "probably", "seems") for claims.
+       Only state facts supported by measured thresholds (e.g., 
+       "gaze direction was >60° from screen center for 3 minutes").
+    3. AVOID evaluative language; use neutral, descriptive terms.
+    4. FOCUS on behavioral metrics: gaze angle (°), posture stability (variance), 
+       gesture frequency (events/min), task interaction indices.
+    5. When explaining patterns, cite specific metric values and thresholds.
+    6. Format numerical tables clearly with headers and units.
+    
+    OUTPUT INSTRUCTIONS:
+    - For each time interval and student, provide:
+      * Metric Summary Table: [Time, GazeAngle(°), PostureVariance(°), 
+        GestureFreq(#/min), InteractionIndex(0-1), EngagementScore(0-100)]
+      * Narrative: "During XX:YY-XX:ZZ, Student #N exhibited [measured metrics]. 
+        This correlates with [feature-based interpretation]. Recommended action: 
+        [teacher feedback based on data]."
+    
+    PROHIBITED OUTPUTS:
+    - No personality assessments
+    - No ability judgments
+    - No emotional state inferences
+    - No socioeconomic or demographic predictions
+    - No medical/psychological diagnoses
+
+# Data Processing Configuration
+data_processing:
+  # Storage format
+  storage_format: "hdf5"  # "hdf5", "parquet", "csv"
+  compression: "gzip"  # "gzip", "lz4", "none"
+  
+  # Data retention
+  retain_raw_frames: false  # Delete raw video after processing
+  retain_individual_frames: false  # Delete per-frame data after aggregation
+  retention_period_days: 30  # Keep aggregate data only
+  
+  # Backup
+  backup_enabled: false
+  backup_path: "/backup/videoanalysis"
+
+# Logging & Debugging
+logging:
+  level: "INFO"  # "DEBUG", "INFO", "WARNING", "ERROR"
+  log_file: "logs/engagement_analysis.log"
+  log_format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  # Performance monitoring
+  profile_performance: false
+  log_frame_processing_time: true
+  log_feature_extraction_time: true
+
+# Validation & Quality Assurance
+validation:
+  # Pose estimation validation
+  validate_pose_confidence: true
+  min_pose_confidence: 0.3  # Joints below this are excluded
+  
+  # Tracking validation
+  validate_tracking_continuity: true
+  max_frame_gap_tolerance: 5  # Frames
+  min_track_length: 10  # Minimum frames to report track
+  
+  # Feature validation
+  validate_feature_ranges: true
+  outlier_detection: "iqr"  # "iqr" or "zscore"
+  outlier_threshold: 3  # sigma or IQR multiplier
+
+# Experimental Features
+experimental:
+  # Optional advanced features
+  multi_camera_fusion: false  # Combine data from multiple viewpoints
+  attention_heatmaps: false  # Generate attention maps
+  emotion_proxy_analysis: false  # Infer engagement state (experimental)
+  
+  # Performance optimization
+  use_batch_processing: true
+  batch_size: 32
+  use_fp16: true  # Mixed precision training/inference
