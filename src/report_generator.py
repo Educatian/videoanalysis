@@ -9,6 +9,7 @@ from typing import Dict, List, Optional
 import logging
 import pandas as pd
 from datetime import datetime
+from html import escape
 
 logger = logging.getLogger(__name__)
 
@@ -340,7 +341,7 @@ OUTPUT: 2-3 sentences, evidence-based, neutral tone.
         <body>
             <h1>Classroom Engagement Analysis Report</h1>
             <p><strong>Generated:</strong> """ + datetime.now().strftime('%Y-%m-%d %H:%M:%S') + """</p>
-            <p><strong>Session:</strong> """ + session_data.get('session_name', 'Unknown') + """</p>
+            <p><strong>Session:</strong> """ + escape(str(session_data.get('session_name', 'Unknown'))) + """</p>
             <p><strong>Students Tracked:</strong> """ + str(len(session_data.get('students_tracked', []))) + """</p>
             
             <h2>Engagement Timeline</h2>
@@ -377,11 +378,11 @@ OUTPUT: 2-3 sentences, evidence-based, neutral tone.
             
             html += f"""
                 <tr class="{color_class}">
-                    <td>{timeblock}</td>
-                    <td>{student_id}</td>
+                    <td>{escape(str(timeblock))}</td>
+                    <td>{escape(str(student_id))}</td>
                     <td>{score:.0f}/100</td>
-                    <td>{level}</td>
-                    <td>{narrative}</td>
+                    <td>{escape(str(level))}</td>
+                    <td>{escape(str(narrative))}</td>
                 </tr>
             """
         
